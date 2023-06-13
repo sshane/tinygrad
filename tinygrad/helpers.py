@@ -17,7 +17,7 @@ def make_pair(x:Union[int, Tuple[int, ...]], cnt=2) -> Tuple[int, ...]: return (
 def flatten(l:Iterator): return [item for sublist in l for item in sublist]
 def mnum(i) -> str: return str(i) if i >= 0 else f"m{-i}"
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def getenv(key, default=0): return type(default)(os.getenv(key, default))
 
 class Context:
