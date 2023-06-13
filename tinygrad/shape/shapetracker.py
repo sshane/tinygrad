@@ -15,7 +15,7 @@ def check_no_mul(test, var):
   if test.__class__ is ModNode and test.b%4 == 0: return check_no_mul(test.a, var)   # removing a mod is okay
   return False
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def to_shape_strides(shape:Tuple[int, ...], strides:Tuple[int, ...]) -> List[Tuple[int, int]]:
   assert len(shape) == len(strides)
   ret = [(shape[0], strides[0])] if len(shape) > 0 else []
@@ -26,10 +26,10 @@ def to_shape_strides(shape:Tuple[int, ...], strides:Tuple[int, ...]) -> List[Tup
       ret.append((shape[i], strides[i]))
   return ret
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def is_contiguous(shape:Tuple[int, ...], strides:Tuple[int, ...]) -> bool: return all([s1 == s2 or s == 1 for s,s1,s2 in zip(shape, strides, strides_for_shape(shape))])
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def filter_strides(shape:Tuple[int, ...], strides:Tuple[int, ...]) -> Tuple[int, ...]:
   new_strides = []
   for stride, shp in zip(strides, shape):
@@ -83,18 +83,18 @@ class View:
     assert len(idxs) == len(self.shape), f"need an idx for all dimensions {idxs} vs {self.shape}"
     return Variable.sum([Variable.num(self.offset)] + [idx*st for idx,sh,st in zip(idxs, self.shape, self.strides) if sh != 1 and st != 0])
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def strides_for_shape(shape:Tuple[int, ...]) -> Tuple[int, ...]:
   strides = [1] if shape else []
   for d in shape[::-1][:-1]: strides = [d*strides[0]] + strides
   return tuple([st if s != 1 else 0 for st, s in zip(strides, shape)])
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def view_from_shape(shape:Tuple[int, ...]) -> View:
   assert all(isinstance(x, int) for x in shape)
   return View(tuple(shape), strides_for_shape(shape))
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def merge_views(vm2:View, vm1:View) -> Optional[View]:
   if vm2.mask: return None  # this isn't supported yet
   new_strides, new_offset = [], vm2.expr_node(Variable.num(vm1.offset))
@@ -114,7 +114,7 @@ def merge_views(vm2:View, vm1:View) -> Optional[View]:
       break
   return View(vm1.shape, tuple(new_strides), new_offset.b, vm1.mask) if len(new_strides) == len(vm1.strides) else None
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _reshape(view: View, new_shape: Tuple[int, ...]) -> Tuple[View, bool]:
   shape, mask, strides, offset = view.shape, view.mask, view.strides, view.offset
   # check if this is adding or removing 1s (only)
@@ -141,11 +141,11 @@ def _reshape(view: View, new_shape: Tuple[int, ...]) -> Tuple[View, bool]:
       if DEBUG >= 4: print(f"WARNING: creating new view with reshape {view} -> {new_shape}")
       return new_view, True
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def get_pad_args(shape, arg: Tuple[Tuple[int, int], ...]):
   return tuple([(-b,s+e) for s,(b,e) in zip(shape, arg)]), tuple([(b,s+b) for s,(b,_) in zip(shape, arg)])
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def get_unsafe_resize_offset(strides, arg):
   return sum([s * x[0] for s, x in zip(strides,arg)])
 
